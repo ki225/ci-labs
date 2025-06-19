@@ -1,0 +1,93 @@
+workflow:
+  name: '05 inherit variables'
+
+stages:
+  - set
+  - get
+
+# 全域變數（Global Variables），也稱為 Pipeline-level 變數
+variables:
+  _VARS_ARTIFACT: "vars.artifact"
+  _VARS_DOTENV: "vars.dotenv"
+
+default:
+  tags:
+    - basic
+
+set-vars-by-artifacts:
+  stage: set
+  artifacts:
+    name: "artifacts-vars"
+    expire_in: "1 hrs"
+    paths: 
+      - ${_VARS_ARTIFACT} # => vars.artifact
+  rules: 
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - |
+      echo "Variables creation using artifacts"
+      cat <<-EOF>${_VARS_ARTIFACT}
+      _SOURCE=set-vars-by-artifacts
+      _TYPE=artifact
+      _CAN_DOWNLOAD=true
+      _DOWNLOAD_LOCATION="job or pipeline page"
+      EOF
+
+set-vars-by-dotenv:
+  stage: set
+  artifacts:
+    name: "dotenv-vars"
+    expire_in: "1 hrs"
+    reports:
+      dotenv: 
+        - ${_VARS_DOTENV}
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - |
+      echo "Variables creation using dotenv"
+      cat <<-EOF>${_VARS_DOTENV}
+      _SOURCE=set-vars-by-dotenv
+      _TYPE=dotenv
+      _CAN_DOWNLOAD=true
+      _DOWNLOAD_LOCATION="pipeline page only"
+      EOF
+
+# 從上個 job 的 artifacts（vars.artifact）中手動 source 載入變數
+get-vars-from-artifacts:
+  stage: get
+  dependencies:
+    - set-vars-by-artifacts
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  before_script:
+    # 手動載入 vars.artifact 中的變數
+    - |
+      echo "Variables from artifacts"
+      source ${_VARS_ARTIFACT} 
+  script:
+    - |
+      echo "Show variables"
+      echo "Source: ${_SOURCE}"
+      echo "Type: ${_TYPE}"
+      echo "Can download: ${_CAN_DOWNLOAD}"
+      echo "Download location: ${_DOWNLOAD_LOCATION}"
+
+# 無需手動讀取，GitLab 會把 vars.dotenv 中的變數自動注入當前 job 的執行環境，可直接使用 ${_SOURCE} 等變數
+get-vars-from-dotenv:
+  stage: get
+  dependencies:
+    - set-vars-by-dotenv
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  before_script:
+    - |
+      echo "Variables from dotenv is registered as runtime-created variables of the job"
+      echo "No need to read explicitly"
+  script:
+    - |
+      echo "Show variables"
+      echo "Source: ${_SOURCE}"
+      echo "Type: ${_TYPE}"
+      echo "Can download: ${_CAN_DOWNLOAD}"
+      echo "Download location: ${_DOWNLOAD_LOCATION}"

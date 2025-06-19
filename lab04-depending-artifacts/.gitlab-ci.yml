@@ -1,0 +1,112 @@
+workflow:
+  name: '04 depending artifacts'
+
+stages:
+  - level1
+  - level2
+  - level3
+
+variables:
+  _TREASURE_1A: "treasure-1a.txt"
+  _TREASURE_1B: "treasure-1b.txt"
+  _EQUIPMENT_1B: "equipment-1b.txt" 
+
+default:
+  tags:
+    - basic  
+
+level-1a:
+  stage: level1
+  # 產生出來的 ${_TREASURE_1A} 可以保存一小時，讓下一個 stage 使用
+  artifacts:
+    name: "level-1a-awards"
+    when: on_success
+    expire_in: "1 hrs"
+    paths: 
+      - ${_TREASURE_1A}
+  rules: 
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  before_script:
+    - echo "Pass ${CI_JOB_NAME} to get treasure for next level"
+  script:
+    - echo "FIGHT!!!!!!"
+    - | 
+      echo "Congrats! You got the treasure for level 1a"
+      echo 'Treaser: $100' > ${_TREASURE_1A}
+
+level-1b:
+  stage: level1
+  artifacts:
+    name: "level-1b-awards"
+    when: on_success
+    expire_in: "1 hrs"
+    paths: 
+      - ${_TREASURE_1B}
+      - ${_EQUIPMENT_1B}
+  rules: 
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  before_script:
+    - echo "Pass ${CI_JOB_NAME} to get treasure for next level"
+  script:
+    - echo "FIGHT!!!!!!"
+    - | 
+      echo "Congrats! You got the treasure for level 1a"
+      echo 'Treaser: $300' > ${_TREASURE_1B}
+      echo 'Weapn: Mighty Sword' >> ${_EQUIPMENT_1B}
+
+level-2a:
+  stage: level2
+  dependencies:
+    - level-1a
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  before_script:
+    - echo "Should get treasure from level 1a"
+  script:
+    - |
+      echo "Show treasure"
+      ls -lh
+      if [[ -f ${_TREASURE_1A} ]]; then
+        echo "My treasure: $(cat ${_TREASURE_1A})"
+      else
+        echo "No treasure found, there must be something wrong"
+      fi
+
+level-2b:
+  stage: level2
+  dependencies:
+    - level-1b
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  before_script:
+    - echo "Should get treasures from level 1b"
+  script:
+    - |
+      echo "Find treasures"
+      ls -lh
+      for _treasure in $(ls *-1b.txt); do
+        echo "show -> $(cat ${_treasure})"
+      done
+    
+level-3-awards:
+  stage: level3
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  before_script:
+    - echo "Get all awards from previous jobs"
+  script:
+    - |
+      echo "Show awards"
+      ls -lh
+
+level-3-easteregg:  
+  stage: level3
+  dependencies: []
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  before_script:
+    - echo "Easter egg is independent"
+  script:
+    - |
+      echo "Should show no awards"
+      ls -lh

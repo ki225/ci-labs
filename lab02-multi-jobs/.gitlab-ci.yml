@@ -1,0 +1,64 @@
+workflow:
+  name: '02 more jobs'
+
+stages:
+  - good-morning
+  - good-evening
+  - good-night
+
+default:
+# default 中的 before_script 設定會套用到所有沒有該設定的 job 上
+  before_script:
+    - echo "default before script runs before script section in every job"
+    - |
+      echo "And the alarm goes..."
+      echo "RING RING RING!"
+
+gm01:
+  tags:
+    - basic
+  stage: good-morning
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - echo "Good morning, another day of work!"
+
+ge01:
+  tags:
+    - basic
+  stage: good-evening
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - echo "Good evening, take a quick nap"
+    - |
+      echo "Sleep for 5"
+      echo "Jobs in same stage run in parallel by default"
+      sleep 5
+      echo "Wake up!"
+
+ge02:
+  tags:
+    - basic
+  stage: good-evening
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - echo "Good evening, time goes on and on"
+    - |
+      echo "Jobs in same stage run in parallel by default"
+      echo "I run when you sleep"
+      
+gn01:
+  tags:
+    - basic
+  stage: good-night
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  before_script:
+    - echo "Job specific before script overrides defaultst before script"
+    - |
+      echo "Be quiet and sleep"
+      echo "No alarm in the night shh...."
+  script:
+    - echo "Good night, sleep tight"

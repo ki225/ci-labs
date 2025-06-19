@@ -1,0 +1,24 @@
+workflow:
+  name: '01 Hello World'
+
+stages: 
+  - practice 
+
+job1: # target 1: 包含一個 job (名稱自訂)
+  tags:
+    - basic # target 2: job 使用 basic tag 的 runner 執行
+  stage: practice # target3: 把這個 job 放在 stage practice 執行（自定義 stage）
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - echo "Hello, World!"
+    # 在 console 目前印出所在路徑
+    - echo "Current directory:${PWD}"
+    - echo "Files in current directory:"
+    - ls
+    # 列出目前路徑中的檔案 / 資料夾
+    - echo "Files in current directory:$(ls)"
+    - mkdir -p practice-01 # -p 會在目錄不存在時自動建立
+    - cd practice-01 && touch hello.txt
+    - echo "hello world" > hello.txt
+    - cat hello.txt

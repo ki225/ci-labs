@@ -1,0 +1,56 @@
+workflow:
+  name: '02 more jobs'
+
+stages:
+  - stage1
+  - stage2
+  - stage3
+
+default:
+  before_script:
+    - echo "default before script runs before script section in every job"
+    - |
+      echo "And the alarm goes..."
+      echo "RING RING RING!"
+
+st1-1:
+  tags:
+    - basic
+  stage: stage1
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - echo "Hi! I am sproutBot model 27001"
+    - echo "I work at frontdesk and say 'Hi' "
+
+st2-1:
+  tags:
+    - basic
+  stage: stage2
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - echo "Hi! I am sproutBot model 27001"
+    - echo "I work in office and write document"
+
+st3-1:
+  tags:
+    - basic
+  stage: stage3
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - echo "Hi! I am sproutBot model 27001"
+    - echo "I work remote and sleep late"
+
+st3-2:
+  tags:
+    - basic
+  stage: stage3
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - echo "Good morning! Good evening! and Good night!"
+    - echo "I am openBot model 33031"
+    - echo ""
+    - echo "I don't work and I am free"

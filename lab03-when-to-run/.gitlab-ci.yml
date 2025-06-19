@@ -1,0 +1,67 @@
+workflow:
+  name: '03 when to run'
+
+stages:
+  - display
+  - shout
+
+default:
+  tags:
+    - basic  
+
+display-variables:
+  stage: display
+  rules: 
+    - if: '$CI_PIPELINE_SOURCE == "web"' # $CI_PIPELINE_SOURCE is GitLab predefined variable that indicates the source of the pipeline trigger
+  before_script:
+    - |
+      echo "This is a ${CI_PIPELINE_SOURCE} pipeline triggered by ${GITLAB_USER_NAME}"
+      echo "The pipeline is running for ${CI_COMMIT_REF_NAME} branch"
+      echo "This job's name is ${CI_JOB_NAME} and it's ID is ${CI_JOB_ID}"
+  script:
+    - |
+      echo "Displaying some predefined variables"
+      echo "GitLab API v4 root URL: ${CI_API_V4_URL}"
+      echo "Current pipeline id: ${CI_PIPELINE_ID}"
+      echo "Current pipeline URL: ${CI_PIPELINE_URL}"
+      echo "Current Job details URL: ${CI_JOB_URL}"
+      echo "Project name: ${CI_PROJECT_NAME}"
+      echo "Project id: ${CI_PROJECT_ID}"
+      echo "Project namespace: ${CI_PROJECT_PATH}"
+      if [[ ! -z ${CI_COMMIT_TAG} ]]; then
+        echo "Commit tag name: ${CI_COMMIT_TAG}"
+      fi
+
+branch-shout:
+  stage: shout
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_NAME == "dev"'
+      # variables 是條件式設定變數的功能，用來根據條件動態指定變數的值，而不是全域變數。這些變數只會在該條件成立時套用到該 Job。
+      variables: # 如果 pipeline 是從「網頁觸發」而且是在 dev 分支上執行，那這個 Job 會執行，並在執行時擁有： _MAPPING_ENV=develop, _MAPPING_VERSION=v_dev，這樣就可以用在 script 上
+        _MAPPING_ENV: "develop"
+        _MAPPING_VERSION: "v_${CI_COMMIT_REF_NAME}"
+    - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_NAME == "main"'
+      variables:
+        _MAPPING_ENV: "production"
+        _MAPPING_VERSION: "v_${CI_COMMIT_REF_NAME}"
+    - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_NAME =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
+      variables:
+        _MAPPING_ENV: "production"
+        _MAPPING_VERSION: "v_${CI_COMMIT_REF_NAME}"
+      when: manual
+  before_script:
+    - echo "Shout my reference name out!"
+  script:
+    - |
+      echo "I am running on ${_MAPPING_ENV} environment"
+      echo "I am running on ${_MAPPING_VERSION} version"
+    - echo "See you next time!"
+
+release-shout:
+  stage: shout
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
+  script:
+    - |
+      echo "Me version: ${CI_COMMIT_TAG}"
+      echo "Me ready to release!"

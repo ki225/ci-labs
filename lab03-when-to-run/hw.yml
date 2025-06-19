@@ -1,0 +1,35 @@
+workflow:
+  name: '03 when to run'
+
+default:
+  tags:
+    - basic  
+
+job1:
+  stage: test
+  rules: 
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    # 在 console 印出最近一次的 git commit message 跟 git commit sha
+    - |
+      echo "The last commit message is: ${CI_COMMIT_MESSAGE}"
+      echo "The last commit SHA is: ${CI_COMMIT_SHA}"
+
+job2:
+  stage: test
+  rules:
+    # 只有在觸發 pipeline 時給變數 _EASTER_EGG 才會執行
+    - if: '$CI_PIPELINE_SOURCE == "web" && $_EASTER_EGG'  
+      variables:
+        _EASTER_EGG: "true"
+  before_script:
+    # 當 _EASTER_EGG 為 Halloween 時，要在 console 印出訊息：
+    - |
+      if [ "$_EASTER_EGG" = "Halloween" ]; then
+        message="Happy Halloween!"
+      elif [ "$_EASTER_EGG" = "Christmas" ]; then
+        message="Santa Claus is Coming to Town!"
+      fi
+        message="BROKEN EGG"
+  script:
+    - echo "$message"

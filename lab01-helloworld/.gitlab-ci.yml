@@ -1,0 +1,16 @@
+# practice
+workflow:
+  name: '01 Hello World'
+
+helloWorld:
+  tags:
+    - basic
+  stage: test
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - echo "Hello, World!"
+    - echo "Bash command is used to run in runner"
+    - |
+      echo "Hi there"
+      echo "You can print multiple lines using the pipe syntax"

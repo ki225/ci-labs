@@ -1,0 +1,58 @@
+workflow:
+  name: '05 inherit variables'
+
+stages:
+  - stage1
+  - stage2
+
+variables:
+  _DATETIME_FILE: "current_time.env"
+  _RANDOM_DOTENV: "random_num.env"
+
+default:
+  tags:
+    - basic
+
+job1:
+  stage: stage1
+  artifacts:
+    name: "artifacts-vars"
+    expire_in: "1 hrs"
+    paths: # 一般 artifact 
+      - print_time.sh
+      - $_DATETIME_FILE
+    reports: #  dotenv artifact 
+      dotenv: ${_RANDOM_DOTENV} # 他會載入 random_num.env 檔案中的變數，假設檔案內是 aaa=bbb ccc=ddd，則就是引入變數 aaa 和 ccc
+  rules: 
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  before_script:
+    - _RANDOM_NUM=$((RANDOM % 100)) # 兩個小括號是 bash 的算術運算符號
+  script:
+    - echo "_CURRENT_DATETIME=$(date +'%Y-%m-%dT%H:%M:%S')" > $_DATETIME_FILE
+    - |
+      echo "#!/bin/bash" > print_time.sh
+      echo 'echo "Executed at : $_CURRENT_DATETIME"' >> print_time.sh
+      chmod +x print_time.sh
+    # dotenv 
+    - |
+    - echo "RANDOM_NUM=$_RANDOM_NUM" > $_RANDOM_DOTENV
+    - echo "Random number:$_RANDOM_NUM"
+
+job2:
+  stage: stage2
+  dependencies: 
+    - job1
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  before_script:
+    - source $_DATETIME_FILE # 從 job1 的 artifacts 中讀取一般變數
+  script:
+    - |
+      ./print_time.sh
+    - |
+      echo $_CURRENT_DATETIME
+    # 從 job1 的 dotenv artifact (_RANDOM_DOTENV) 中讀取變數 $RANDOM_NUM
+    - |
+      echo "get job1's var:"
+      echo $RANDOM_NUM 
+

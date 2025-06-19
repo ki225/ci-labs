@@ -1,0 +1,90 @@
+workflow:
+  name: '04 depending artifacts'
+
+stages:
+  - stage1
+  - stage2
+
+default:
+  tags:
+    - basic  
+
+level-1a:
+  stage: stage1
+  artifacts:
+    name: "level-1a-awards"
+    when: on_success
+    expire_in: "1 hrs"
+    paths: 
+      - ./file1.txt
+  rules: 
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - echo "FIGHT!!!!!!" > file1.txt
+
+level-1b:
+  stage: stage1
+  artifacts:
+    name: "level-1b-awards"
+    when: on_success
+    expire_in: "1 hrs"
+    paths: 
+      - ./file2.txt
+  rules: 
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - echo "FIGHT!!!!!!" > file2.txt
+
+level-1c:
+  stage: stage1
+  artifacts:
+    name: "level-1c-awards"
+    when: on_success
+    expire_in: "1 hrs"
+    paths: 
+      - file3.txt
+      - keep-dir/
+  rules: 
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  before_script:
+    - echo "Pass ${CI_JOB_NAME} to get treasure for next level"
+  script:
+    # 把先前建立的 artifact 放在 keep-dir 資料夾中
+    - touch file3.txt
+    - mkdir -p keep-dir
+    - mv file3.txt keep-dir/
+    - touch exclude-this.txt
+
+level-2a:
+  stage: stage2
+  dependencies: # job1 中要拿到並列出 stage1 中 job1 和 job3 的 artifacts
+    - level-1a 
+    - level-1c
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  before_script:
+    - echo "Should get treasure from level 1a"
+  script:
+    - |
+      echo "Listing artifacts from job-a and c :"
+      ls -lh
+      
+
+level-2b:
+  stage: stage2
+  dependencies:
+    - level-1b
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - |
+      echo "Listing artifacts from job-a and c :"
+      ls -lh
+    
+level-2c:
+  stage: stage2
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    echo "Catch no artifacts."
+ 
