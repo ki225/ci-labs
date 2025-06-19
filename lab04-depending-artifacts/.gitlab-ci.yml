@@ -56,6 +56,7 @@ level-1b:
 
 level-2a:
   stage: level2
+  # 這個 job 會依賴 level-1a 的 artifacts
   dependencies:
     - level-1a
   rules:
