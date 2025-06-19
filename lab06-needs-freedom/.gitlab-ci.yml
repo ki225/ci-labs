@@ -1,0 +1,70 @@
+workflow:
+  name: '06 needs freedom'
+
+stages:
+  - init
+  - nap
+  - activity
+
+default:
+  tags:
+    - basic
+
+morning:
+  stage: init
+  artifacts:
+    name: "my-lunch"
+    expire_in: "1 hour"
+    reports:
+      dotenv: lunch.env
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - |
+      echo "Good morning!"
+      echo "Wish you have a good day today"
+    - |
+      echo "What's for lunch"
+      echo "_LUNCH=Pizza" > lunch.env
+
+sleep:
+  stage: nap
+  artifacts:
+    name: "my-snack"
+    expire_in: "1 hour"
+    reports:
+      dotenv: snack.env
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  before_script:
+    - |
+      echo "Prepare snack before sleep"
+      echo "_SNACK=Brownie" > snack.env
+  script:
+    - |
+      echo "Take a short nap"
+      sleep 60
+      echo "And... done!"
+
+after-sleep:
+  stage: activity
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  needs:
+    - job: sleep
+      artifacts: true
+  script: 
+    - |
+      echo "Great sleep, let's have some snack"
+      echo "Today's snack is ${_SNACK}"
+
+lunch-time:
+  stage: activity
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  needs: ["morning"] # 在 morning job 執行完成後執行
+  script:
+    - |
+      echo "It's lunch time"
+      echo "Today's lunch is ${_LUNCH}"
+  

@@ -1,0 +1,31 @@
+workflow:
+  name: '07 pipelines relationship (trigger-from)'
+
+stages:
+  - fetch
+
+default:
+  tags:
+    - basic
+
+variables:
+  _REGISTRY: "showcase"
+  _PACKAGE: "useless-pkg.tgz"
+  _VERSION: "latest"
+
+fetch-package:
+  stage: fetch
+  rules:
+    - if: '$_SRC == "trigger-from"'
+      variables:
+        _SRC_PROJECT_ID: xxxx # trigger-from 專案的 ID
+  script:
+    - |
+      echo "Get package from package registry: ${_REGISTRY}, package: ${_PACKAGE}, version: ${_VERSION}"
+      wget --header="JOB-TOKEN: ${CI_JOB_TOKEN}" \
+          "${CI_API_V4_URL}/projects/${_SRC_PROJECT_ID}/packages/generic/${_REGISTRY}/${_VERSION}/${_PACKAGE}" \
+          -O ${_PACKAGE}
+    - |
+      echo "Show package"
+      tar -xzf ${_PACKAGE}
+      cat ${_PACKAGE//.tgz}/hello.txt

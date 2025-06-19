@@ -1,0 +1,54 @@
+image: debian:bullseye
+
+default:
+  before_script:
+    - |
+      apt-get update && apt-get install -y wget curl unzip
+      sleep 5
+
+stages:
+  - extract
+  - deploy
+  - verify
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "pipeline"'
+
+extract-package:
+  stage: extract
+  script:
+    - echo "PACKAGE_FILE = $PACKAGE_FILE"
+    - echo "_SRC_PROJECT_ID = $_SRC_PROJECT_ID"
+    - echo "Downloading from:"
+    - echo "$CI_API_V4_URL/projects/$_SRC_PROJECT_ID/packages/generic/$PACKAGE_NAME/$PACKAGE_VERSION/$PACKAGE_FILE"
+    - |
+      wget --header="JOB-TOKEN: ${CI_JOB_TOKEN}" \
+          "$CI_API_V4_URL/projects/$_SRC_PROJECT_ID/packages/generic/$PACKAGE_NAME/$PACKAGE_VERSION/$PACKAGE_FILE" \
+          -O page.zip
+
+    - ls
+    - echo "Extracting package..."
+    - unzip page.zip -d public/
+  artifacts:
+    paths:
+      - public/
+
+pages:
+  stage: deploy
+  script:
+    - echo "Deploying to GitLab Pages"
+  artifacts:
+    paths:
+      - public
+  only:
+    - main 
+
+check-pages:
+  stage: verify
+  needs:
+    - job: pages
+      artifacts: false  
+  script:
+    - sleep 15 
+    - curl --fail --show-error https://xxxxxx/trigger-to/

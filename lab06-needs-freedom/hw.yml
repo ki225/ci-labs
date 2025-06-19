@@ -1,0 +1,63 @@
+workflow:
+  name: '06 needs freedom'
+
+stages:
+  - init
+  - check
+
+default:
+  tags:
+    - basic
+
+init:
+  stage: init
+  artifacts:
+    name: "my-lunch"
+    expire_in: "1 hour"
+    reports:
+      dotenv: var.env
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - |
+      echo "generating a random number ..."
+      _NUM=$RANDOM
+      echo "_NUM=$_NUM" > var.env
+
+check-random:
+  stage: check
+  allow_failure: true
+  artifacts:
+    reports:
+      dotenv: result.env
+  dependencies:
+    - init
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  before_script:
+    - |
+      _NEW_NUM=$((_NUM%10))
+      echo "_NEW_NUM=$_NEW_NUM" > result.env
+      _REMAINDER=$((_NEW_NUM%2))
+      echo "_REMAINDER=$_REMAINDER" >> result.env 
+  script:
+    - |
+      if [ "$_REMAINDER" -eq 0 ]; then
+        echo "Even number. Exiting successfully.";
+        exit 0;
+      else
+        echo "Odd number. Failing the job.";
+        exit 1;
+      fi
+
+final-check:
+  stage: check
+  needs: 
+    - job: check-random
+      optional: true
+      artifacts: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script: 
+    - echo $_REMAINDER
+

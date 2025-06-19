@@ -1,0 +1,56 @@
+workflow:
+  name: '07 pipelines relationship (trigger-from)'
+
+stages:
+  - prep
+  - release
+  - trigger
+
+default:
+  tags:
+    - basic
+
+variables:
+  _PACKAGE_NAME: "showcase"
+  _PACKAGE_DIR: "useless-pkg"
+  _VERSION: "latest"
+
+prepare-package:
+  stage: prep
+  artifacts:
+    paths:
+      - ./${_PACKAGE_DIR}
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - |
+      echo "Package preparation"
+      mkdir -p ${_PACKAGE_DIR}
+      echo "Just text here (Version: ${_VERSION})" > ${_PACKAGE_DIR}/hello.txt
+
+release-package:
+  stage: release
+  dependencies:
+    - prepare-package
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - |
+      echo "Package release name: ${_PACKAGE_NAME}, version: ${_VERSION}"
+      tar -zcf ${_PACKAGE_DIR}.tgz ${_PACKAGE_DIR}
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${_PACKAGE_NAME}/${_VERSION}/${_PACKAGE_DIR}.tgz" \
+        --upload-file ${_PACKAGE_DIR}.tgz
+
+trigger:
+  stage: trigger
+  variables:
+    _VERSION: $_VERSION
+    _SRC: 'trigger-from'
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+  trigger: # 觸發另一個專案的 pipeline
+    project: 'xxxxx/07-pipelines-relationship/trigger-to'
+    strategy: depend
+    branch: main

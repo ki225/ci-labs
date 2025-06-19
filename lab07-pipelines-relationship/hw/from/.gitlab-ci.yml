@@ -1,0 +1,78 @@
+image: debian:bullseye
+
+default:
+  before_script:
+    - |
+      apt-get update && apt-get install -y curl zip
+      sleep 5
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+
+stages:
+  - build
+  - deploy
+  - trigger
+
+variables:
+  PACKAGE_NAME: "practice07"
+  PACKAGE_VERSION: "latest"
+  PACKAGE_FILE: "web-content-${CI_PIPELINE_ID}.zip"
+
+build-and-publish:
+  stage: build
+  script:
+    - echo "Replacing domain placeholder..."
+    - sed "s/{{DOMAIN}}/${_DOMAIN}/g" index.html > index.processed.html
+    - mkdir package
+    - mv index.processed.html package/index.html
+    - cd package
+    - zip "../${PACKAGE_FILE}" index.html
+  artifacts:
+    paths:
+      - ${PACKAGE_FILE}
+  only:
+    - main
+
+publish-to-registry:
+  stage: deploy
+  script:
+    - echo "Setting vars"
+    - export PACKAGE_VERSION="latest"
+    - echo "Replacing domain in index.html..."
+    - sed -i "s/DOMAIN_PLACEHOLDER/${_DOMAIN}/g" index.html # sed 用於替換文本
+    # cicd yaml 不會認換行所以不用在尾端加入 "\"
+    - curl --header "JOB-TOKEN:$CI_JOB_TOKEN" 
+           --upload-file ${PACKAGE_FILE} 
+           "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${PACKAGE_NAME}/${PACKAGE_VERSION}/${PACKAGE_FILE}"
+
+  dependencies:
+    - build-and-publish
+  only:
+    - main
+
+prepare-vars:
+  stage: trigger
+  script:
+    - echo "PACKAGE_FILE=web-content-${CI_PIPELINE_ID}.zip" >> trigger.env
+    - echo "PACKAGE_NAME=${PACKAGE_NAME}" >> trigger.env
+    - echo "PACKAGE_VERSION=${PACKAGE_VERSION}" >> trigger.env
+  artifacts:
+    reports:
+      dotenv: trigger.env
+  dependencies:
+    - build-and-publish
+  only:
+    - main
+
+trigger-project2:
+  stage: trigger
+  variables: # Variables saved in the .gitlab-ci.yml file are visible to all users with access to the repository, and should store only non-sensitive project configuration.
+    _SRC_PROJECT_ID: $CI_PROJECT_ID # variables 必須是事先定義好的，不能中途變更值
+  trigger:
+    project: 'xxxxx/kiki-own/07-pipelines-relationship/trigger-to'
+    strategy: depend # depend 會等待被觸發的 pipeline 完成後才會結束
+    branch: main
+  only: # 只在 main 分支上執行
+    - main
